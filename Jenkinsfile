@@ -4,11 +4,14 @@ pipeline {
             label 'maven'
         }
     }
+envinronment {
+    PATH = "/opt/apache-maven-3.9.10/bin:$PATH"
+}
 
     stages {
-        stage('Clone-code') {
+        stage("build"){
             steps {
-                git branch: 'main', url: 'https://github.com/Marcin4356/x-trend-new.git'
+                sh 'mvn clen deploy'
             }
         }
     }
