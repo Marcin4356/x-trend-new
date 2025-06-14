@@ -1,7 +1,6 @@
-# Ttrend application
-
-This is a small applicaiton which contains main and test folders.  
-Main contains application code.  
-Test contains test cases.  
-It also contains pom.xml which has all dependences and artfact name and version
+# Application
+This is a small application that contains main and test folders.
+The main folder contains the application code.
+The test folder contains the test cases.
+It also includes a pom.xml file that lists all dependencies as well as the artifact name and version.
 
