@@ -1,4 +1,4 @@
-package com.stalin.demo.controller;
+package com.marcin01.xtrend.controller;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -7,8 +7,9 @@ import java.util.Map;
 import org.kohsuke.github.GHRepositorySearchBuilder;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.env.Environment;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -24,58 +25,69 @@ import twitter4j.conf.ConfigurationBuilder;
 @RestController
 public class RepositoryDetailsController {
 
+    private static final Logger logger = LoggerFactory.getLogger(RepositoryDetailsController.class);
 
+    @Value("${GITHUB_USERNAME}")
+    private String githubUsername;
 
+    @Value("${GITHUB_PASSWORD}")
+    private String githubPassword;
 
-    @Autowired
-    private Environment env;
+    @Value("${CONSUMER_KEY}")
+    private String consumerKey;
 
-	@RequestMapping("/")
-	public String getRepos() throws IOException {
-		GitHub github = new GitHubBuilder().withPassword("valaxytech@gmail.com", "XXXXXXXX").build();
-		GHRepositorySearchBuilder builder = github.searchRepositories();
-		return "Greetings from Valaxy Technologies";
-	}
+    @Value("${CONSUMER_SECRET}")
+    private String consumerSecret;
 
-	@GetMapping("/trends")
-	public Map<String, String> getTwitterTrends(@RequestParam("placeid") String trendPlace, @RequestParam("count") String trendCount) {
-		String consumerKey = env.getProperty("CONSUMER_KEY");
-		String consumerSecret = env.getProperty("CONSUMER_SECRET");
-		String accessToken = env.getProperty("ACCESS_TOKEN");
-		String accessTokenSecret = env.getProperty("ACCESS_TOKEN_SECRET");
-		System.out.println("consumerKey "+consumerKey+" consumerSecret "+consumerSecret+" accessToken "+accessToken+" accessTokenSecret "+accessTokenSecret);		
-		ConfigurationBuilder cb = new ConfigurationBuilder();
-		cb.setDebugEnabled(true)
-		        .setOAuthConsumerKey(consumerKey)
-				.setOAuthConsumerSecret(consumerSecret)
-				.setOAuthAccessToken(accessToken)
-				.setOAuthAccessTokenSecret(accessTokenSecret);
-		TwitterFactory tf = new TwitterFactory(cb.build());
-		System.out.println("Twitter Factory "+tf);
-		System.out.println("Code testing purpose ");
-		Twitter twitter = tf.getInstance();
-		System.out.println("Twitter object "+twitter);
-		Map<String, String> trendDetails = new HashMap<String, String>();
-		try {
-			Trends trends = twitter.getPlaceTrends(Integer.parseInt(trendPlace));
-			System.out.println("After API call");
-			int count = 0;
-			for (Trend trend : trends.getTrends()) {
-				if (count < Integer.parseInt(trendCount)) {
-					trendDetails.put(trend.getName(), trend.getURL());
-					count++;
-				}
-			}
-		} catch (TwitterException e) {
-			trendDetails.put("test", "MyTweet");
-            //trendDetails.put("Twitter Exception", e.getMessage());
-			System.out.println("Twitter exception "+e.getMessage());
+    @Value("${ACCESS_TOKEN}")
+    private String accessToken;
 
-		}catch (Exception e) {
-			trendDetails.put("test", "MyTweet");
-            System.out.println("Exception "+e.getMessage());
-		}
-		return trendDetails;
-	}
+    @Value("${ACCESS_TOKEN_SECRET}")
+    private String accessTokenSecret;
 
+    @RequestMapping("/")
+    public String getRepos() throws IOException {
+        GitHub github = new GitHubBuilder()
+                .withPassword(githubUsername, githubPassword)
+                .build();
+
+        GHRepositorySearchBuilder builder = github.searchRepositories();
+
+        return "Welcome to x-trend!";
+    }
+
+    @GetMapping("/trends")
+    public Map<String, String> getTwitterTrends(@RequestParam("placeid") String trendPlace,
+                                                @RequestParam("count") String trendCount) {
+        ConfigurationBuilder cb = new ConfigurationBuilder();
+        cb.setDebugEnabled(true)
+          .setOAuthConsumerKey(consumerKey)
+          .setOAuthConsumerSecret(consumerSecret)
+          .setOAuthAccessToken(accessToken)
+          .setOAuthAccessTokenSecret(accessTokenSecret);
+
+        TwitterFactory tf = new TwitterFactory(cb.build());
+        Twitter twitter = tf.getInstance();
+
+        Map<String, String> trendDetails = new HashMap<>();
+
+        try {
+            Trends trends = twitter.getPlaceTrends(Integer.parseInt(trendPlace));
+            int count = 0;
+            for (Trend trend : trends.getTrends()) {
+                if (count < Integer.parseInt(trendCount)) {
+                    trendDetails.put(trend.getName(), trend.getURL());
+                    count++;
+                }
+            }
+        } catch (TwitterException e) {
+            logger.error("Twitter API error: {}", e.getMessage());
+            trendDetails.put("error", "Twitter API error");
+        } catch (Exception e) {
+            logger.error("Unexpected error: {}", e.getMessage());
+            trendDetails.put("error", "Unexpected error");
+        }
+
+        return trendDetails;
+    }
 }
